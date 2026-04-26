@@ -1,0 +1,1263 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SpeakUp — English Trainer</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fraunces:ital,wght@0,300;0,600;1,300&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d0f14;
+    --surface: #161920;
+    --surface2: #1e2230;
+    --border: #2a2f42;
+    --accent: #5cefb0;
+    --accent2: #ff6b6b;
+    --accent3: #ffd166;
+    --text: #e8eaf2;
+    --muted: #6b7194;
+    --success: #5cefb0;
+    --error: #ff6b6b;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    overflow-x: hidden;
+  }
+
+  /* Noise texture */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-width: 760px;
+    padding: 40px 24px 80px;
+  }
+
+  /* Header */
+  header {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    margin-bottom: 48px;
+  }
+
+  .logo {
+    font-family: 'Fraunces', serif;
+    font-size: 2.2rem;
+    font-weight: 600;
+    color: var(--accent);
+    letter-spacing: -1px;
+  }
+
+  .logo span {
+    color: var(--text);
+  }
+
+  .tagline {
+    font-size: 0.72rem;
+    color: var(--muted);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  /* Cards */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 28px;
+    margin-bottom: 20px;
+  }
+
+  .card-label {
+    font-size: 0.65rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 14px;
+  }
+
+  /* Input area */
+  textarea {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.9rem;
+    line-height: 1.7;
+    padding: 16px;
+    resize: vertical;
+    min-height: 120px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  textarea:focus { border-color: var(--accent); }
+  textarea::placeholder { color: var(--muted); }
+
+  /* Buttons */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 24px;
+    border-radius: 8px;
+    border: none;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.82rem;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-weight: 500;
+  }
+
+  .btn-primary {
+    background: var(--accent);
+    color: #0d0f14;
+  }
+
+  .btn-primary:hover { filter: brightness(1.1); transform: translateY(-1px); }
+  .btn-primary:active { transform: translateY(0); }
+
+  .btn-ghost {
+    background: transparent;
+    color: var(--muted);
+    border: 1px solid var(--border);
+  }
+
+  .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none !important; }
+
+  /* Progress bar */
+  .progress-wrap {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+
+  .progress-track {
+    flex: 1;
+    height: 3px;
+    background: var(--border);
+    border-radius: 99px;
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 99px;
+    transition: width 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .progress-label {
+    font-size: 0.72rem;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+
+  /* Sentence display */
+  .sentence-display {
+    font-family: 'Fraunces', serif;
+    font-size: 1.5rem;
+    font-weight: 300;
+    line-height: 1.6;
+    color: var(--text);
+    margin-bottom: 20px;
+    min-height: 60px;
+    letter-spacing: -0.02em;
+  }
+
+  .word {
+    display: inline-block;
+    transition: all 0.3s;
+    position: relative;
+  }
+
+  .word.masked {
+    color: transparent;
+    background: var(--border);
+    border-radius: 4px;
+    min-width: 60px;
+    user-select: none;
+    position: relative;
+  }
+
+  .word.masked::after {
+    content: '____';
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    color: var(--muted);
+    font-size: 0.9em;
+  }
+
+  .word.key-word {
+    color: var(--accent3);
+  }
+
+  /* Rep indicators */
+  .rep-dots {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 20px;
+  }
+
+  .rep-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    border: 1px solid var(--border);
+    background: transparent;
+    transition: all 0.3s;
+  }
+
+  .rep-dot.done { background: var(--accent); border-color: var(--accent); }
+  .rep-dot.current { border-color: var(--accent); box-shadow: 0 0 8px var(--accent); }
+
+  /* Mic button */
+  .mic-area {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    padding: 24px 0;
+  }
+
+  .mic-btn {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+    background: var(--surface2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+    outline: none;
+  }
+
+  .mic-btn:hover { border-color: var(--accent); }
+
+  .mic-btn.listening {
+    border-color: var(--accent2);
+    background: rgba(255,107,107,0.08);
+    animation: pulse-ring 1.2s ease-in-out infinite;
+  }
+
+  .mic-btn.listening svg { color: var(--accent2); }
+
+  @keyframes pulse-ring {
+    0% { box-shadow: 0 0 0 0 rgba(255,107,107,0.4); }
+    70% { box-shadow: 0 0 0 16px rgba(255,107,107,0); }
+    100% { box-shadow: 0 0 0 0 rgba(255,107,107,0); }
+  }
+
+  .mic-btn svg {
+    width: 28px;
+    height: 28px;
+    color: var(--muted);
+    transition: color 0.2s;
+  }
+
+  .mic-status {
+    font-size: 0.75rem;
+    color: var(--muted);
+    letter-spacing: 0.08em;
+    text-align: center;
+    min-height: 20px;
+  }
+
+  /* Transcript display */
+  .transcript-box {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 18px;
+    font-size: 0.88rem;
+    color: var(--muted);
+    font-style: italic;
+    min-height: 48px;
+    transition: all 0.3s;
+  }
+
+  .transcript-box.has-text { color: var(--text); border-color: var(--accent); }
+
+  /* Feedback */
+  .feedback-bar {
+    border-radius: 10px;
+    padding: 14px 18px;
+    font-size: 0.83rem;
+    display: none;
+    align-items: center;
+    gap: 10px;
+    margin-top: 12px;
+  }
+
+  .feedback-bar.success {
+    display: flex;
+    background: rgba(92,239,176,0.08);
+    border: 1px solid rgba(92,239,176,0.3);
+    color: var(--success);
+  }
+
+  .feedback-bar.error {
+    display: flex;
+    background: rgba(255,107,107,0.08);
+    border: 1px solid rgba(255,107,107,0.3);
+    color: var(--error);
+  }
+
+  /* Sentence list preview */
+  .sentence-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .sentence-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px 14px;
+    border-radius: 8px;
+    background: var(--surface2);
+    font-size: 0.83rem;
+    line-height: 1.5;
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: all 0.2s;
+  }
+
+  .sentence-item:hover { border-color: var(--border); }
+  .sentence-item.active { border-color: var(--accent); background: rgba(92,239,176,0.05); }
+  .sentence-item.done { opacity: 0.4; }
+
+  .sentence-num {
+    font-size: 0.65rem;
+    color: var(--muted);
+    padding-top: 2px;
+    min-width: 20px;
+  }
+
+  /* Sections toggle */
+  #setup-section, #practice-section { display: none; }
+  #setup-section.active, #practice-section.active { display: block; }
+
+  /* Rep description */
+  .rep-desc {
+    font-size: 0.72rem;
+    color: var(--accent3);
+    letter-spacing: 0.06em;
+    margin-bottom: 14px;
+  }
+
+  /* Action row */
+  .action-row {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 16px;
+  }
+
+  /* Score badge */
+  .score-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    border-radius: 99px;
+    font-size: 0.72rem;
+    background: rgba(92,239,176,0.1);
+    color: var(--accent);
+    border: 1px solid rgba(92,239,176,0.25);
+  }
+
+  /* Complete screen */
+  .complete-screen {
+    text-align: center;
+    padding: 48px 24px;
+  }
+
+  .complete-screen h2 {
+    font-family: 'Fraunces', serif;
+    font-size: 2.8rem;
+    font-weight: 300;
+    color: var(--accent);
+    margin-bottom: 12px;
+  }
+
+  .complete-screen p {
+    color: var(--muted);
+    font-size: 0.85rem;
+    margin-bottom: 28px;
+  }
+
+  /* Wave animation for listening */
+  .wave-bars {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    height: 20px;
+  }
+
+  .wave-bar {
+    width: 3px;
+    border-radius: 99px;
+    background: var(--accent2);
+    animation: wave 0.8s ease-in-out infinite;
+  }
+
+  .wave-bar:nth-child(2) { animation-delay: 0.1s; }
+  .wave-bar:nth-child(3) { animation-delay: 0.2s; }
+  .wave-bar:nth-child(4) { animation-delay: 0.3s; }
+  .wave-bar:nth-child(5) { animation-delay: 0.4s; }
+
+  @keyframes wave {
+    0%, 100% { height: 4px; }
+    50% { height: 18px; }
+  }
+
+  .hidden { display: none !important; }
+
+  /* TTS button */
+  .tts-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 1px solid var(--border);
+    background: transparent;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    flex-shrink: 0;
+  }
+
+  .tts-btn:hover { border-color: var(--accent3); }
+  .tts-btn svg { width: 16px; height: 16px; color: var(--muted); }
+  .tts-btn:hover svg { color: var(--accent3); }
+
+  .sentence-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+
+  /* Similarity bar */
+  .similarity-wrap {
+    margin-top: 8px;
+    display: none;
+  }
+
+  .similarity-wrap.visible { display: block; }
+
+  .similarity-track {
+    height: 4px;
+    background: var(--border);
+    border-radius: 99px;
+    overflow: hidden;
+    margin-top: 6px;
+  }
+
+  .similarity-fill {
+    height: 100%;
+    border-radius: 99px;
+    transition: width 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .sim-label { font-size: 0.7rem; color: var(--muted); }
+
+  /* ── Victory stars overlay ── */
+  #victory-overlay {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 999;
+    overflow: hidden;
+    display: none;
+  }
+
+  #victory-overlay.active { display: block; }
+
+  .star-burst {
+    position: absolute;
+    font-size: 2rem;
+    animation: star-fly 1.4s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    will-change: transform, opacity;
+  }
+
+  @keyframes star-fly {
+    0%   { transform: translate(0,0) scale(0.2) rotate(0deg); opacity: 1; }
+    60%  { opacity: 1; }
+    100% { transform: translate(var(--tx), var(--ty)) scale(1.2) rotate(var(--rot)); opacity: 0; }
+  }
+
+  /* Mini stars that float around the sentence display on each rep success */
+  .mini-star {
+    position: absolute;
+    font-size: 1.1rem;
+    animation: mini-pop 0.7s ease-out forwards;
+    pointer-events: none;
+  }
+
+  @keyframes mini-pop {
+    0%   { transform: translate(0,0) scale(0); opacity: 1; }
+    50%  { opacity: 1; }
+    100% { transform: translate(var(--tx), var(--ty)) scale(1); opacity: 0; }
+  }
+</style>
+</head>
+<body>
+<div id="victory-overlay"></div>
+<div class="container">
+
+  <header>
+    <div class="logo">Speak<span>Up</span></div>
+    <div class="tagline">English Repetition Trainer</div>
+  </header>
+
+  <!-- Bannière avertissement iframe (Google Sites) -->
+  <div id="iframe-warning" class="card" style="display:none; border-color:#ffd166; background:rgba(255,209,102,0.07);">
+    <div style="display:flex; gap:12px; align-items:flex-start;">
+      <span style="font-size:1.4rem;">⚠️</span>
+      <div>
+        <div style="font-size:0.82rem; color:var(--accent3); font-weight:500; margin-bottom:6px;">Application intégrée dans un iframe</div>
+        <div style="font-size:0.75rem; color:var(--muted); line-height:1.7;">
+          Google Sites bloque l'accès au microphone et au son dans les iframes.<br>
+          Pour utiliser SpeakUp avec le micro et le son, ouvrez-le en pleine page :
+        </div>
+        <a id="open-fullpage" href="#" target="_blank"
+           style="display:inline-block; margin-top:10px; padding:8px 16px; background:var(--accent3); color:#0d0f14; border-radius:6px; font-size:0.78rem; text-decoration:none; font-weight:500;">
+          ↗ Ouvrir SpeakUp en pleine page
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- SETUP SECTION -->
+  <div id="setup-section" class="active">
+    <div class="card">
+      <div class="card-label">// votre texte en anglais</div>
+      <textarea id="input-text" placeholder="Enter your English text here. It can be multiple sentences. The app will split and practice each one individually..."></textarea>
+      <div class="action-row">
+        <button class="btn btn-primary" onclick="startTraining()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polygon points="5,3 19,12 5,21"/></svg>
+          Commencer l'entraînement
+        </button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-label">// comment ça marche</div>
+      <div style="font-size:0.8rem; color:var(--muted); line-height:1.9;">
+        <div>① Entrez votre texte → il est découpé en phrases</div>
+        <div>② Chaque phrase est lue à voix haute (TTS)</div>
+        <div>③ Vous répétez <strong style="color:var(--text)">5 fois</strong>, avec des mots masqués progressivement</div>
+        <div>④ Le micro vérifie ce que vous dites en temps réel</div>
+        <div style="margin-top:10px; color:var(--accent3)">🎯 Rép 1: phrase complète → Rép 5: mots clés masqués</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PRACTICE SECTION -->
+  <div id="practice-section">
+
+    <!-- Sentence nav -->
+    <div class="card" id="sentence-nav-card">
+      <div class="card-label">// phrases détectées</div>
+      <div class="sentence-list" id="sentence-list"></div>
+    </div>
+
+    <!-- Practice card -->
+    <div class="card" id="practice-card">
+
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+        <div>
+          <div class="card-label" id="sentence-counter">// phrase 1 / 1</div>
+          <div class="score-badge" id="score-badge">0 / 5 répétitions</div>
+        </div>
+        <button class="btn btn-ghost" style="font-size:0.72rem; padding:8px 14px;" onclick="resetApp()">↩ Recommencer</button>
+      </div>
+
+      <!-- Progress -->
+      <div class="progress-wrap">
+        <div class="progress-track"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+        <div class="progress-label" id="progress-label">0%</div>
+      </div>
+
+      <!-- Rep dots -->
+      <div class="rep-dots" id="rep-dots">
+        <div class="rep-dot current" data-rep="0"></div>
+        <div class="rep-dot" data-rep="1"></div>
+        <div class="rep-dot" data-rep="2"></div>
+        <div class="rep-dot" data-rep="3"></div>
+        <div class="rep-dot" data-rep="4"></div>
+      </div>
+
+      <div class="rep-desc" id="rep-desc">Répétition 1/5 — Lisez la phrase complète</div>
+
+      <!-- Sentence display -->
+      <div class="sentence-header">
+        <div class="sentence-display" id="sentence-display"></div>
+        <button class="tts-btn" onclick="speakCurrent()" title="Écouter">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+            <path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
+            <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Mic area -->
+      <div class="mic-area">
+        <button class="mic-btn" id="mic-btn" onclick="toggleMic()" title="Parler">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+            <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+            <line x1="12" y1="19" x2="12" y2="23"/>
+            <line x1="8" y1="23" x2="16" y2="23"/>
+          </svg>
+        </button>
+        <div id="mic-status" class="mic-status">Appuyez sur le micro pour parler</div>
+        <div class="wave-bars hidden" id="wave-bars">
+          <div class="wave-bar"></div><div class="wave-bar"></div>
+          <div class="wave-bar"></div><div class="wave-bar"></div>
+          <div class="wave-bar"></div>
+        </div>
+      </div>
+
+      <!-- Transcript -->
+      <div class="card-label">// ce que vous dites</div>
+      <div class="transcript-box" id="transcript-box">En attente...</div>
+
+      <!-- Similarity -->
+      <div class="similarity-wrap" id="sim-wrap">
+        <div class="sim-label">Similarité : <span id="sim-pct">0</span>%</div>
+        <div class="similarity-track">
+          <div class="similarity-fill" id="sim-fill" style="width:0%"></div>
+        </div>
+      </div>
+
+      <!-- Feedback -->
+      <div class="feedback-bar" id="feedback-bar">
+        <span id="feedback-icon"></span>
+        <span id="feedback-text"></span>
+      </div>
+
+      <!-- Actions -->
+      <div class="action-row" style="margin-top:20px;">
+        <button class="btn btn-primary" id="next-btn" onclick="nextStep()" disabled>
+          Suivant →
+        </button>
+        <button class="btn btn-ghost" onclick="skipRep()">Passer cette rép.</button>
+      </div>
+
+    </div>
+
+    <!-- Complete screen (hidden initially) -->
+    <div class="card hidden" id="complete-card">
+      <div class="complete-screen">
+        <h2>Excellent ! 🎉</h2>
+        <p>Vous avez terminé toutes les phrases. Beau travail !</p>
+        <button class="btn btn-primary" onclick="resetApp()">
+          Recommencer avec un nouveau texte
+        </button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ─── Détection environnement ──────────────────────────────────────────────────
+const IS_ANDROID = /android/i.test(navigator.userAgent);
+const IS_IOS     = /iphone|ipad|ipod/i.test(navigator.userAgent);
+const IS_MOBILE  = IS_ANDROID || IS_IOS;
+const IN_IFRAME  = window.self !== window.top; // Google Sites embed
+
+// ─── State ───────────────────────────────────────────────────────────────────
+let sentences = [];
+let currentSentenceIdx = 0;
+let currentRep = 0; // 0-4
+const TOTAL_REPS = 5;
+let recognition = null;
+let isListening = false;
+let speechSynthesis = window.speechSynthesis;
+let lastTranscript = '';
+let nextBtnReady = false;
+let audioUnlocked = false; // Android : doit être débloqué après un geste
+
+// Rep masking rules: how many key words to mask at each rep
+// rep 0 → show all, rep 1 → mask verb, rep 2+ → mask more
+// Rep 3 and 4 (= repetitions 4 and 5) are intentionally identical
+const REP_DESCRIPTIONS = [
+  'Répétition 1/5 — Écoutez, puis répétez la phrase complète',
+  'Répétition 2/5 — Le verbe principal est masqué',
+  'Répétition 3/5 — Verbe + mots clés masqués',
+  'Répétition 4/5 — De mémoire ! Phrase presque vide',
+  'Répétition 5/5 — Dernière fois ! Identique à la précédente',
+];
+
+// ─── Sentence splitting ───────────────────────────────────────────────────────
+function splitSentences(text) {
+  const raw = text.match(/[^.!?]+[.!?]*/g) || [text];
+  return raw.map(s => s.trim()).filter(s => s.length > 3);
+}
+
+// ─── Key word detection (simple NLP heuristic) ───────────────────────────────
+const STOPWORDS = new Set(['i','a','an','the','is','are','was','were','be','been','being',
+  'have','has','had','do','does','did','will','would','could','should','may','might',
+  'shall','can','need','dare','ought','used','to','of','in','on','at','by','for',
+  'with','about','as','into','through','during','before','after','above','below',
+  'from','up','down','and','but','or','nor','so','yet','both','either','neither',
+  'not','no','nor','just','that','this','these','those','it','its','my','your',
+  'his','her','our','their','we','they','he','she','you','me','him','us','them']);
+
+function getWordImportance(words) {
+  // Returns sorted array of [index, score]
+  return words.map((w, i) => {
+    const clean = w.replace(/[^a-zA-Z]/g, '').toLowerCase();
+    let score = 0;
+    if (!STOPWORDS.has(clean)) score += 3;
+    if (clean.length > 5) score += 2;
+    if (clean.length > 8) score += 1;
+    // Boost verbs (common verb endings)
+    if (/(?:ing|ed|ize|ise|ify)$/.test(clean)) score += 2;
+    return [i, score];
+  }).sort((a, b) => b[1] - a[1]);
+}
+
+function detectVerb(words) {
+  // Simple: look for common verb patterns
+  const verbPatterns = /^(?:is|are|was|were|has|have|had|does|did|do|will|can|could|should|would|make|made|take|took|go|went|come|came|say|said|get|got|see|saw|know|knew|think|thought|look|want|give|use|find|tell|ask|seem|feel|try|leave|call|keep|let|begin|show|hear|play|run|move|live|believe|hold|bring|happen|write|provide|sit|stand|lose|pay|meet|include|continue|set|learn|change|lead|understand|watch|follow|stop|create|speak|read|spend|grow|open|walk|win|offer|remember|love|consider|appear|buy|wait|serve|die|send|expect|build|stay|fall|cut|reach|kill|remain|suggest|raise|pass|sell|require|report|decide|pull)$/i;
+  for (let i = 0; i < words.length; i++) {
+    const clean = words[i].replace(/[^a-zA-Z]/g, '').toLowerCase();
+    if (verbPatterns.test(clean)) return i;
+  }
+  // Fallback: second word often verb in English
+  return words.length > 1 ? 1 : 0;
+}
+
+function getMaskedIndices(words, rep) {
+  if (rep === 0) return new Set();
+  
+  const verbIdx = detectVerb(words);
+  const importance = getWordImportance(words);
+  const topImportant = importance.slice(0, 6).map(x => x[0]);
+  
+  const masked = new Set();
+  
+  if (rep >= 1) masked.add(verbIdx);
+  if (rep >= 2) {
+    // Add the most important non-verb word
+    for (const idx of topImportant) {
+      if (idx !== verbIdx) { masked.add(idx); break; }
+    }
+  }
+  // rep 3 AND rep 4 → same heavy masking (rép 4 = rép 5)
+  if (rep >= 3) {
+    for (const idx of topImportant) {
+      masked.add(idx);
+      if (masked.size >= Math.ceil(words.length * 0.5)) break;
+    }
+  }
+  
+  return masked;
+}
+
+// ─── Render sentence ──────────────────────────────────────────────────────────
+function renderSentence(sentence, rep) {
+  const words = sentence.split(/\s+/);
+  const maskedSet = getMaskedIndices(words, rep);
+  const verbIdx = detectVerb(words);
+  
+  const display = document.getElementById('sentence-display');
+  display.innerHTML = words.map((w, i) => {
+    const classes = ['word'];
+    if (maskedSet.has(i)) classes.push('masked');
+    else if (i === verbIdx && rep === 0) classes.push('key-word');
+    return `<span class="${classes.join(' ')}">${maskedSet.has(i) ? w : w}</span>`;
+  }).join(' ');
+}
+
+// ─── UI Updates ───────────────────────────────────────────────────────────────
+function updateUI() {
+  const sentence = sentences[currentSentenceIdx];
+  const totalSteps = sentences.length * TOTAL_REPS;
+  const doneSteps = currentSentenceIdx * TOTAL_REPS + currentRep;
+  const pct = Math.round(doneSteps / totalSteps * 100);
+
+  document.getElementById('sentence-counter').textContent = `// phrase ${currentSentenceIdx + 1} / ${sentences.length}`;
+  document.getElementById('score-badge').textContent = `${currentRep} / ${TOTAL_REPS} répétitions`;
+  document.getElementById('progress-fill').style.width = pct + '%';
+  document.getElementById('progress-label').textContent = pct + '%';
+  document.getElementById('rep-desc').textContent = REP_DESCRIPTIONS[currentRep];
+
+  // Rep dots
+  document.querySelectorAll('.rep-dot').forEach((dot, i) => {
+    dot.classList.remove('done', 'current');
+    if (i < currentRep) dot.classList.add('done');
+    else if (i === currentRep) dot.classList.add('current');
+  });
+
+  // Sentence list highlight
+  document.querySelectorAll('.sentence-item').forEach((item, i) => {
+    item.classList.toggle('active', i === currentSentenceIdx);
+    item.classList.toggle('done', i < currentSentenceIdx);
+  });
+
+  renderSentence(sentence, currentRep);
+
+  // Reset feedback
+  hideFeedback();
+  document.getElementById('transcript-box').textContent = 'En attente...';
+  document.getElementById('transcript-box').classList.remove('has-text');
+  document.getElementById('sim-wrap').classList.remove('visible');
+  document.getElementById('next-btn').disabled = true;
+  nextBtnReady = false;
+
+  // Always speak first, then auto-start mic
+  setTimeout(() => {
+    speakThenListen();
+  }, 400);
+}
+
+// ─── Speak then auto-listen ───────────────────────────────────────────────────
+function speakThenListen() {
+  document.getElementById('mic-status').textContent = '🔊 Lecture en cours...';
+  speakCurrent(() => {
+    document.getElementById('mic-status').textContent = '🎙 Micro activé — parlez maintenant !';
+    setTimeout(() => startMic(), 300);
+  });
+}
+
+// ─── Audio unlock (Android / mobile) ─────────────────────────────────────────
+// Les navigateurs mobiles bloquent l'audio jusqu'au premier geste utilisateur.
+// On crée un AudioContext silencieux dès le premier clic pour lever ce blocage.
+function unlockAudio() {
+  if (audioUnlocked) return;
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const buf = ctx.createBuffer(1, 1, 22050);
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    src.connect(ctx.destination);
+    src.start(0);
+    ctx.close();
+  } catch(e) {}
+  // Vide et relance speechSynthesis pour débloquer le pipeline TTS
+  if (speechSynthesis) {
+    speechSynthesis.cancel();
+    const dummy = new SpeechSynthesisUtterance(' ');
+    dummy.volume = 0;
+    speechSynthesis.speak(dummy);
+  }
+  audioUnlocked = true;
+}
+
+// ─── TTS ──────────────────────────────────────────────────────────────────────
+function speakCurrent(onEnd) {
+  if (!speechSynthesis) { if (onEnd) onEnd(); return; }
+  speechSynthesis.cancel();
+
+  const sentence = sentences[currentSentenceIdx];
+  const utt = new SpeechSynthesisUtterance(sentence);
+  utt.lang = 'en-US';
+  utt.rate = IS_MOBILE ? 0.8 : 0.85;
+  utt.volume = 1;
+  utt.pitch = 1;
+
+  // Choisir une voix anglaise si disponible
+  const voices = speechSynthesis.getVoices();
+  const enVoice = voices.find(v => v.lang.startsWith('en') && !v.localService === false)
+                || voices.find(v => v.lang.startsWith('en'));
+  if (enVoice) utt.voice = enVoice;
+
+  if (onEnd) {
+    utt.onend = onEnd;
+    // Fallback : sur Android la synthèse peut ne pas déclencher onend
+    // On utilise un timer de sécurité basé sur la durée estimée
+    const estimatedMs = Math.max(2000, sentence.split(' ').length * 450);
+    const fallback = setTimeout(() => { if (onEnd) onEnd(); }, estimatedMs + 800);
+    utt.onend = () => { clearTimeout(fallback); onEnd(); };
+    utt.onerror = () => { clearTimeout(fallback); onEnd(); };
+  }
+
+  speechSynthesis.speak(utt);
+
+  // Bug Chrome/Android : speechSynthesis se met parfois en pause tout seul
+  if (IS_ANDROID || IS_MOBILE) {
+    const keepAlive = setInterval(() => {
+      if (!speechSynthesis.speaking) { clearInterval(keepAlive); return; }
+      speechSynthesis.pause();
+      speechSynthesis.resume();
+    }, 10000);
+    setTimeout(() => clearInterval(keepAlive), 30000);
+  }
+}
+
+// ─── Speech recognition ──────────────────────────────────────────────────────
+function initRecognition() {
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRecognition) {
+    document.getElementById('mic-status').textContent = '⚠ Reconnaissance vocale non supportée sur ce navigateur';
+    return false;
+  }
+  recognition = new SpeechRecognition();
+  recognition.lang = 'en-US';
+  recognition.continuous = false;
+  recognition.interimResults = true;
+
+  recognition.onstart = () => {
+    isListening = true;
+    document.getElementById('mic-btn').classList.add('listening');
+    document.getElementById('mic-status').textContent = 'Écoute en cours...';
+    document.getElementById('wave-bars').classList.remove('hidden');
+    document.getElementById('transcript-box').textContent = '...';
+  };
+
+  recognition.onresult = (e) => {
+    let transcript = '';
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      transcript += e.results[i][0].transcript;
+    }
+    lastTranscript = transcript;
+    document.getElementById('transcript-box').textContent = transcript;
+    document.getElementById('transcript-box').classList.add('has-text');
+
+    if (e.results[e.results.length - 1].isFinal) {
+      stopMic();
+      evaluateTranscript(transcript);
+    }
+  };
+
+  recognition.onerror = (e) => {
+    stopMic();
+    document.getElementById('mic-status').textContent = 'Erreur micro: ' + e.error;
+  };
+
+  recognition.onend = () => {
+    if (isListening) stopMic();
+  };
+
+  return true;
+}
+
+function toggleMic() {
+  unlockAudio();
+  if (isListening) {
+    stopMic();
+  } else {
+    startMic();
+  }
+}
+
+// ─── Cookie helpers ───────────────────────────────────────────────────────────
+function setCookie(name, value, days) {
+  const expires = new Date(Date.now() + days * 864e5).toUTCString();
+  document.cookie = `${name}=${encodeURIComponent(value)};expires=${expires};path=/;SameSite=Lax`;
+}
+
+function getCookie(name) {
+  const match = document.cookie.match(new RegExp('(?:^|; )' + name + '=([^;]*)'));
+  return match ? decodeURIComponent(match[1]) : null;
+}
+
+// ─── Mic permission ───────────────────────────────────────────────────────────
+// Ask once via getUserMedia to get the browser permission prompt out of the way.
+// After the user grants access, we set a cookie so we know for next sessions.
+let micPermissionGranted = getCookie('mic_granted') === '1';
+
+async function ensureMicPermission() {
+  if (micPermissionGranted) return true;
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    stream.getTracks().forEach(t => t.stop()); // release immediately
+    micPermissionGranted = true;
+    setCookie('mic_granted', '1', 365);
+    return true;
+  } catch(e) {
+    document.getElementById('mic-status').textContent = '⚠ Accès micro refusé — veuillez l\'autoriser dans votre navigateur.';
+    return false;
+  }
+}
+
+function startMic() {
+  speechSynthesis.cancel();
+  if (!recognition && !initRecognition()) return;
+  try { recognition.start(); } catch(e) {}
+}
+
+function stopMic() {
+  isListening = false;
+  document.getElementById('mic-btn').classList.remove('listening');
+  document.getElementById('mic-status').textContent = 'Appuyez sur le micro pour reparler';
+  document.getElementById('wave-bars').classList.add('hidden');
+  if (recognition) try { recognition.stop(); } catch(e) {}
+}
+
+// ─── Evaluation ───────────────────────────────────────────────────────────────
+function normalize(str) {
+  return str.toLowerCase().replace(/[^a-z0-9\s]/g, '').replace(/\s+/g, ' ').trim();
+}
+
+function similarity(a, b) {
+  const wa = normalize(a).split(' ');
+  const wb = normalize(b).split(' ');
+  const setA = new Set(wa);
+  const setB = new Set(wb);
+  let matches = 0;
+  setA.forEach(w => { if (setB.has(w)) matches++; });
+  return matches / Math.max(setA.size, setB.size);
+}
+
+function evaluateTranscript(transcript) {
+  const target = sentences[currentSentenceIdx];
+  const sim = similarity(transcript, target);
+  const pct = Math.round(sim * 100);
+
+  // Show similarity bar
+  const simWrap = document.getElementById('sim-wrap');
+  simWrap.classList.add('visible');
+  document.getElementById('sim-pct').textContent = pct;
+  const fill = document.getElementById('sim-fill');
+  fill.style.width = pct + '%';
+  fill.style.background = pct >= 70 ? 'var(--success)' : pct >= 40 ? 'var(--accent3)' : 'var(--error)';
+
+  if (pct >= 55) {
+    showFeedback('success', '✓', pct >= 80 ? 'Parfait ! Très bonne prononciation.' : 'Bien ! Continuez comme ça.');
+    document.getElementById('next-btn').disabled = false;
+    nextBtnReady = true;
+    // Stars: big burst on last rep of a sentence, mini stars otherwise
+    if (currentRep === TOTAL_REPS - 1) {
+      shootVictoryStars();
+    } else {
+      shootMiniStars();
+    }
+  } else {
+    showFeedback('error', '✗', `Essayez encore — ${pct}% de correspondance. Réécoutez et réessayez.`);
+    setTimeout(() => {
+      document.getElementById('next-btn').disabled = false;
+      nextBtnReady = true;
+    }, 1500);
+  }
+}
+
+// ─── Star celebrations ────────────────────────────────────────────────────────
+const STAR_EMOJIS = ['⭐','🌟','✨','💫','🌠'];
+
+function shootVictoryStars() {
+  const overlay = document.getElementById('victory-overlay');
+  overlay.innerHTML = '';
+  overlay.classList.add('active');
+  const count = 28;
+  for (let i = 0; i < count; i++) {
+    setTimeout(() => {
+      const star = document.createElement('div');
+      star.className = 'star-burst';
+      star.textContent = STAR_EMOJIS[Math.floor(Math.random() * STAR_EMOJIS.length)];
+      // Random origin around center
+      const ox = 30 + Math.random() * 40; // % from left
+      const oy = 30 + Math.random() * 40; // % from top
+      star.style.left = ox + '%';
+      star.style.top = oy + '%';
+      // Random destination
+      const tx = (Math.random() - 0.5) * window.innerWidth * 0.9;
+      const ty = (Math.random() - 0.5) * window.innerHeight * 0.9;
+      const rot = (Math.random() - 0.5) * 720 + 'deg';
+      star.style.setProperty('--tx', tx + 'px');
+      star.style.setProperty('--ty', ty + 'px');
+      star.style.setProperty('--rot', rot);
+      star.style.animationDuration = (1.0 + Math.random() * 0.8) + 's';
+      overlay.appendChild(star);
+    }, i * 50);
+  }
+  setTimeout(() => {
+    overlay.classList.remove('active');
+    overlay.innerHTML = '';
+  }, 3000);
+}
+
+function shootMiniStars() {
+  const anchor = document.getElementById('sentence-display');
+  const rect = anchor.getBoundingClientRect();
+  const cx = rect.left + rect.width / 2;
+  const cy = rect.top + rect.height / 2;
+  const overlay = document.getElementById('victory-overlay');
+  overlay.classList.add('active');
+  for (let i = 0; i < 8; i++) {
+    setTimeout(() => {
+      const star = document.createElement('div');
+      star.className = 'mini-star';
+      star.textContent = STAR_EMOJIS[Math.floor(Math.random() * STAR_EMOJIS.length)];
+      star.style.left = cx + 'px';
+      star.style.top = cy + 'px';
+      const tx = (Math.random() - 0.5) * 180;
+      const ty = -60 - Math.random() * 80;
+      star.style.setProperty('--tx', tx + 'px');
+      star.style.setProperty('--ty', ty + 'px');
+      overlay.appendChild(star);
+      setTimeout(() => star.remove(), 800);
+    }, i * 60);
+  }
+  setTimeout(() => overlay.classList.remove('active'), 1200);
+}
+
+function showFeedback(type, icon, text) {
+  const bar = document.getElementById('feedback-bar');
+  bar.className = 'feedback-bar ' + type;
+  document.getElementById('feedback-icon').textContent = icon;
+  document.getElementById('feedback-text').textContent = text;
+}
+
+function hideFeedback() {
+  document.getElementById('feedback-bar').className = 'feedback-bar';
+}
+
+// ─── Navigation ───────────────────────────────────────────────────────────────
+function nextStep() {
+  stopMic();
+  speechSynthesis.cancel();
+  currentRep++;
+
+  if (currentRep >= TOTAL_REPS) {
+    currentRep = 0;
+    currentSentenceIdx++;
+
+    if (currentSentenceIdx >= sentences.length) {
+      showComplete();
+      return;
+    }
+  }
+  updateUI();
+}
+
+function skipRep() {
+  stopMic();
+  speechSynthesis.cancel();
+  document.getElementById('next-btn').disabled = false;
+  showFeedback('error', '⤼', 'Répétition passée.');
+  nextBtnReady = true;
+}
+
+function showComplete() {
+  document.getElementById('practice-card').classList.add('hidden');
+  document.getElementById('complete-card').classList.remove('hidden');
+  // Massive celebration
+  setTimeout(() => shootVictoryStars(), 100);
+  setTimeout(() => shootVictoryStars(), 800);
+  setTimeout(() => shootVictoryStars(), 1600);
+}
+
+// ─── Start / Reset ────────────────────────────────────────────────────────────
+async function startTraining() {
+  // Déblocage audio sur le premier geste utilisateur (Android / mobile)
+  unlockAudio();
+
+  const text = document.getElementById('input-text').value.trim();
+  if (!text) { alert('Entrez un texte en anglais.'); return; }
+
+  sentences = splitSentences(text);
+  if (!sentences.length) { alert('Aucune phrase détectée.'); return; }
+
+  currentSentenceIdx = 0;
+  currentRep = 0;
+
+  // Build sentence list
+  const list = document.getElementById('sentence-list');
+  list.innerHTML = sentences.map((s, i) =>
+    `<div class="sentence-item${i===0?' active':''}" onclick="jumpToSentence(${i})">
+      <span class="sentence-num">${i+1}.</span>
+      <span>${s}</span>
+    </div>`
+  ).join('');
+
+  document.getElementById('setup-section').classList.remove('active');
+  document.getElementById('practice-section').classList.add('active');
+  document.getElementById('practice-card').classList.remove('hidden');
+  document.getElementById('complete-card').classList.add('hidden');
+
+  // Request mic permission once (uses cookie to skip prompt if already granted)
+  await ensureMicPermission();
+  initRecognition();
+  updateUI();
+}
+
+function jumpToSentence(idx) {
+  if (idx >= sentences.length) return;
+  stopMic();
+  speechSynthesis.cancel();
+  currentSentenceIdx = idx;
+  currentRep = 0;
+  updateUI();
+}
+
+function resetApp() {
+  stopMic();
+  speechSynthesis.cancel();
+  sentences = [];
+  currentSentenceIdx = 0;
+  currentRep = 0;
+  document.getElementById('practice-section').classList.remove('active');
+  document.getElementById('setup-section').classList.add('active');
+}
+
+// ─── Init au chargement ───────────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', () => {
+  // 1. Pré-charger les voix TTS (Android en a besoin avant le premier speak)
+  if (speechSynthesis) {
+    speechSynthesis.getVoices();
+    if (speechSynthesis.onvoiceschanged !== undefined) {
+      speechSynthesis.onvoiceschanged = () => speechSynthesis.getVoices();
+    }
+  }
+
+  // 2. Détecter si on est dans un iframe (Google Sites)
+  if (IN_IFRAME) {
+    const banner = document.getElementById('iframe-warning');
+    banner.style.display = 'block';
+    // Le lien ouvre l'URL de cette page directement (hors iframe)
+    document.getElementById('open-fullpage').href = window.location.href;
+  }
+
+  // 3. Sur mobile, afficher un conseil dans la zone "comment ça marche"
+  if (IS_MOBILE) {
+    const info = document.querySelector('.card:last-of-type div[style]');
+    if (info) {
+      const tip = document.createElement('div');
+      tip.style.cssText = 'margin-top:10px; color:var(--accent); font-size:0.75rem;';
+      tip.textContent = '📱 Mobile : autorisez le micro dans les paramètres de votre navigateur si demandé.';
+      info.appendChild(tip);
+    }
+  }
+});
+</script>
+</body>
+</html>
